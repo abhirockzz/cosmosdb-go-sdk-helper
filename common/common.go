@@ -35,8 +35,8 @@ func CreateDatabaseIfNotExists(client *azcosmos.Client, dbName string) (*azcosmo
 	return db, nil
 }
 
-func CreateContainerIfNotExists(client *azcosmos.DatabaseClient, containerName string) (*azcosmos.ContainerClient, error) {
-	container, err := client.NewContainer(containerName)
+func CreateContainerIfNotExists(db *azcosmos.DatabaseClient, containerName string) (*azcosmos.ContainerClient, error) {
+	container, err := db.NewContainer(containerName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create container client: %v", err)
 	}
@@ -45,13 +45,17 @@ func CreateContainerIfNotExists(client *azcosmos.DatabaseClient, containerName s
 	if err != nil {
 		if cosmosdb_errors.GetError(err).Status == http.StatusNotFound {
 			// Container doesn't exist, try to create it
-			_, err = client.CreateContainer(context.Background(), azcosmos.ContainerProperties{
+			_, err = db.CreateContainer(context.Background(), azcosmos.ContainerProperties{
 				ID: containerName,
+				PartitionKeyDefinition: azcosmos.PartitionKeyDefinition{
+					Paths: []string{"/partitionKey"},
+					Kind:  azcosmos.PartitionKeyKindHash,
+				},
 			}, nil)
 			if err != nil {
 				return nil, fmt.Errorf("failed to create container: %v", err)
 			}
-			return container, nil
+			return db.NewContainer(containerName)
 		}
 		return nil, fmt.Errorf("failed to read container: %v", err)
 	}
