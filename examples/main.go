@@ -11,7 +11,7 @@ import (
 
 func main() {
 	// Authenticate with default credential
-	client, err := auth.GetClientWithDefaultAzureCredential("https://ACCOUNT_NAME.documents.azure.com", nil)
+	client, err := auth.GetClientWithDefaultAzureCredential("https://ACCOUNT_NAME.documents.azure.com:443", nil)
 	if err != nil {
 		log.Fatalf("Azure AD auth failed: %v", err)
 	}

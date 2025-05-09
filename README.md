@@ -1,6 +1,6 @@
-# Cosmos DB Go SDK Helper
+# Azure Cosmos DB Go SDK Helper
 
-A simple helper library providing convenience functions for working with the Azure Cosmos DB Go SDK. This includes utilities for authentication, database and container management, error handling, etc.
+A simple helper package providing convenience functions for working with the [Go SDK for Azure Cosmos DB NoSQL API](https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/sdk-go). This includes utilities for authentication, database and container management, error handling, etc.
 
 ## Installation
 
@@ -53,7 +53,7 @@ func main() {
 
 ```go
 // Using DefaultAzureCredential (supports multiple authentication methods)
-client, err := auth.GetClientWithDefaultAzureCredential("https://your-account.documents.azure.com", nil)
+client, err := auth.GetClientWithDefaultAzureCredential("https://your-account.documents.azure.com:443", nil)
 ```
 
 ### Local Emulator
