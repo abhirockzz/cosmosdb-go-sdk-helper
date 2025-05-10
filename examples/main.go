@@ -8,6 +8,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/data/azcosmos"
 	"github.com/abhirockzz/cosmosdb-go-sdk-helper/auth"
 	"github.com/abhirockzz/cosmosdb-go-sdk-helper/common"
+	"github.com/abhirockzz/cosmosdb-go-sdk-helper/cosmosdb_errors"
 	"github.com/abhirockzz/cosmosdb-go-sdk-helper/query"
 )
 
@@ -87,7 +88,7 @@ func errorHandlingHelperExample(endpoint string) {
 	// Error handling helper usage: simulate a non-existing database
 	_, err = db.Read(context.Background(), nil)
 	if err != nil {
-		errInfo := common.GetError(err)
+		errInfo := cosmosdb_errors.GetError(err)
 		fmt.Printf("Error info: status=%d, message=%q\n", errInfo.Status, errInfo.Message)
 	}
 }

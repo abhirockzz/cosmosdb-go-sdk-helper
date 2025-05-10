@@ -2,15 +2,15 @@ package common
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/data/azcosmos"
 	"github.com/abhirockzz/cosmosdb-go-sdk-helper/cosmosdb_errors"
 )
 
+// CreateDatabaseIfNotExists returns a DatabaseClient for the given database, creating the database if it does not exist.
+// This ensures idempotent database creation and simplifies setup for Cosmos DB resources.
 func CreateDatabaseIfNotExists(client *azcosmos.Client, dbName string) (*azcosmos.DatabaseClient, error) {
 	db, err := client.NewDatabase(dbName)
 	if err != nil {
@@ -35,6 +35,8 @@ func CreateDatabaseIfNotExists(client *azcosmos.Client, dbName string) (*azcosmo
 	return db, nil
 }
 
+// CreateContainerIfNotExists returns a ContainerClient for the given container, creating the container if it does not exist.
+// This is useful for idempotent container setup in Cosmos DB databases.
 func CreateContainerIfNotExists(db *azcosmos.DatabaseClient, containerName string) (*azcosmos.ContainerClient, error) {
 	container, err := db.NewContainer(containerName)
 	if err != nil {
@@ -63,6 +65,8 @@ func CreateContainerIfNotExists(db *azcosmos.DatabaseClient, containerName strin
 	return container, nil
 }
 
+// GetAllDatabases retrieves all database properties in the Cosmos DB account.
+// Use this to enumerate or inspect all databases in the account.
 func GetAllDatabases(client *azcosmos.Client) ([]azcosmos.DatabaseProperties, error) {
 	pager := client.NewQueryDatabasesPager("select * from c", nil)
 	var databases []azcosmos.DatabaseProperties
@@ -76,6 +80,8 @@ func GetAllDatabases(client *azcosmos.Client) ([]azcosmos.DatabaseProperties, er
 	return databases, nil
 }
 
+// GetAllContainers retrieves all container properties in the specified database.
+// Use this to enumerate or inspect all containers in a database.
 func GetAllContainers(client *azcosmos.DatabaseClient) ([]azcosmos.ContainerProperties, error) {
 	pager := client.NewQueryContainersPager("select * from c", nil)
 	var containers []azcosmos.ContainerProperties
@@ -87,19 +93,4 @@ func GetAllContainers(client *azcosmos.DatabaseClient) ([]azcosmos.ContainerProp
 		containers = append(containers, page.Containers...)
 	}
 	return containers, nil
-}
-
-type CosmosDBError struct {
-	Message string
-	Status  int
-}
-
-func GetError(err error) CosmosDBError {
-
-	var respErr *azcore.ResponseError
-	if !errors.As(err, &respErr) {
-		return CosmosDBError{}
-	}
-
-	return CosmosDBError{Message: err.Error(), Status: respErr.StatusCode}
 }
