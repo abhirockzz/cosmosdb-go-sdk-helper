@@ -1,6 +1,13 @@
 # Azure Cosmos DB Go SDK Helper
 
-A simple helper package providing convenience functions for working with the [Go SDK for Azure Cosmos DB NoSQL API](https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/sdk-go). This includes utilities for authentication, database and container management, error handling, etc.
+A simple helper package providing convenience functions for working with the [Go SDK for Azure Cosmos DB NoSQL API](https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/sdk-go). This includes utilities for authentication, querying, database and container operations, error handling, etc.
+
+Packages:
+
+- [auth](auth): Authentication utilities for Azure Cosmos DB
+- [common](common): Common utilities for database and container operations
+- [query](query): Query utilities to retrieve data using generic types
+- [cosmosdb_errors](cosmosdb_errors): Error handling utilities for Cosmos DB operations
 
 ## Installation
 
@@ -19,6 +26,7 @@ import (
 
     "github.com/abhirockzz/cosmosdb-go-sdk-helper/auth"
     "github.com/abhirockzz/cosmosdb-go-sdk-helper/common"
+    "github.com/abhirockzz/cosmosdb-go-sdk-helper/query"
 )
 
 func main() {
@@ -41,11 +49,24 @@ func main() {
     }
     
     fmt.Println("Database and container ready!")
+
+    type Task struct {
+		ID   string `json:"id"`
+		Info string `json:"info"`
+	}
+
+    tasks, err := query.QueryItems[Task](container, "SELECT * FROM c", azcosmos.NewPartitionKey(), nil)
+	if err != nil {
+		log.Fatalf("QueryItems failed: %v", err)
+	}
+	for _, task := range tasks {
+		fmt.Printf("Task: %s (%s)\n", task.ID, task.Info)
+	}
+
 }
 ```
 
 > Also, refer to [examples](examples).
-
 
 ## Authentication Options
 
@@ -74,6 +95,11 @@ client, err := auth.GetEmulatorClientWithAzureADAuth("https://localhost:8081", n
 
 - `CreateContainerIfNotExists`: Creates a container only if it doesn't already exist
 - `GetAllContainers`: Retrieves a list of all containers in a database
+
+## Query operations (using Generics)
+
+- `QueryItems`: Executes a SQL query against a container and returns the results
+- `QueryItem`: Retrieves a single item from a container using its ID and partition key
 
 ## Error Handling
 
