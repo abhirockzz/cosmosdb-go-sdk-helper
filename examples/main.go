@@ -29,14 +29,22 @@ func dbAndContainerCreationExample(endpoint string) {
 	}
 
 	// Create database if not exists
-	db, err := common.CreateDatabaseIfNotExists(client, "tododb")
+	db, err := common.CreateDatabaseIfNotExists(client, azcosmos.DatabaseProperties{
+		ID: "tododb",
+	}, nil)
 	if err != nil {
 		log.Fatalf("CreateDatabaseIfNotExists failed: %v", err)
 	}
 	fmt.Println("Database ready:", db.ID())
 
 	// Create container if not exists
-	container, err := common.CreateContainerIfNotExists(db, "tasks")
+	container, err := common.CreateContainerIfNotExists(db, azcosmos.ContainerProperties{
+		ID: "tasks",
+		PartitionKeyDefinition: azcosmos.PartitionKeyDefinition{
+			Paths: []string{"/id"},
+			Kind:  azcosmos.PartitionKeyKindHash,
+		},
+	}, nil)
 	if err != nil {
 		log.Fatalf("CreateContainerIfNotExists failed: %v", err)
 	}
@@ -106,7 +114,9 @@ func emulatorADAuthExample() {
 	}
 	fmt.Println("Authenticated with Emulator.")
 
-	db, err := common.CreateDatabaseIfNotExists(emuClient, "sampledb")
+	db, err := common.CreateDatabaseIfNotExists(emuClient, azcosmos.DatabaseProperties{
+		ID: "sampledb",
+	}, nil)
 	if err != nil {
 		log.Fatalf("CreateDatabaseIfNotExists failed: %v", err)
 	}
@@ -180,10 +190,10 @@ func queryItemExample(endpoint, databaseName, containerName, itemID, partitionKe
 }
 
 func main() {
-	endpoint := "https://ACCOUNT_NAME.documents.azure.com:443"
+	endpoint := "https://mcpdemo.documents.azure.com:443"
 
-	defaultAzureCredentialExample(endpoint)
-	// dbAndContainerCreationExample(endpoint)
+	//defaultAzureCredentialExample(endpoint)
+	dbAndContainerCreationExample(endpoint)
 	// getAllDBandContainersExample(endpoint)
 	// errorHandlingHelperExample(endpoint)
 	// emulatorADAuthExample()

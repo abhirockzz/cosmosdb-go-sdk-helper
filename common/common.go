@@ -11,8 +11,8 @@ import (
 
 // CreateDatabaseIfNotExists returns a DatabaseClient for the given database, creating the database if it does not exist.
 // This ensures idempotent database creation and simplifies setup for Cosmos DB resources.
-func CreateDatabaseIfNotExists(client *azcosmos.Client, dbName string) (*azcosmos.DatabaseClient, error) {
-	db, err := client.NewDatabase(dbName)
+func CreateDatabaseIfNotExists(client *azcosmos.Client, props azcosmos.DatabaseProperties, opts *azcosmos.CreateDatabaseOptions) (*azcosmos.DatabaseClient, error) {
+	db, err := client.NewDatabase(props.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create database client: %v", err)
 	}
@@ -21,13 +21,16 @@ func CreateDatabaseIfNotExists(client *azcosmos.Client, dbName string) (*azcosmo
 	if err != nil {
 		if cosmosdb_errors.GetError(err).Status == http.StatusNotFound {
 			// Database doesn't exist, try to create it
-			_, err = client.CreateDatabase(context.Background(), azcosmos.DatabaseProperties{
-				ID: dbName,
-			}, nil)
+			_, err = client.CreateDatabase(context.Background(), props, opts)
 			if err != nil {
+				cosmosErr := cosmosdb_errors.GetError(err)
+				if cosmosErr.Status == http.StatusConflict {
+					// Database was created by another process, treat as success
+					return client.NewDatabase(props.ID)
+				}
 				return nil, fmt.Errorf("failed to create database: %v", err)
 			}
-			return db, nil
+			return client.NewDatabase(props.ID)
 		}
 		return nil, fmt.Errorf("failed to read database: %v", err)
 	}
@@ -37,8 +40,9 @@ func CreateDatabaseIfNotExists(client *azcosmos.Client, dbName string) (*azcosmo
 
 // CreateContainerIfNotExists returns a ContainerClient for the given container, creating the container if it does not exist.
 // This is useful for idempotent container setup in Cosmos DB databases.
-func CreateContainerIfNotExists(db *azcosmos.DatabaseClient, containerName string) (*azcosmos.ContainerClient, error) {
-	container, err := db.NewContainer(containerName)
+func CreateContainerIfNotExists(db *azcosmos.DatabaseClient, props azcosmos.ContainerProperties, opts *azcosmos.CreateContainerOptions) (*azcosmos.ContainerClient, error) {
+	//func CreateContainerIfNotExists(db *azcosmos.DatabaseClient, containerName string) (*azcosmos.ContainerClient, error) {
+	container, err := db.NewContainer(props.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create container client: %v", err)
 	}
@@ -47,17 +51,16 @@ func CreateContainerIfNotExists(db *azcosmos.DatabaseClient, containerName strin
 	if err != nil {
 		if cosmosdb_errors.GetError(err).Status == http.StatusNotFound {
 			// Container doesn't exist, try to create it
-			_, err = db.CreateContainer(context.Background(), azcosmos.ContainerProperties{
-				ID: containerName,
-				PartitionKeyDefinition: azcosmos.PartitionKeyDefinition{
-					Paths: []string{"/partitionKey"},
-					Kind:  azcosmos.PartitionKeyKindHash,
-				},
-			}, nil)
+			_, err = db.CreateContainer(context.Background(), props, opts)
 			if err != nil {
+				cosmosErr := cosmosdb_errors.GetError(err)
+				if cosmosErr.Status == http.StatusConflict {
+					// Container was created by another process, treat as success
+					return db.NewContainer(props.ID)
+				}
 				return nil, fmt.Errorf("failed to create container: %v", err)
 			}
-			return db.NewContainer(containerName)
+			return db.NewContainer(props.ID)
 		}
 		return nil, fmt.Errorf("failed to read container: %v", err)
 	}
