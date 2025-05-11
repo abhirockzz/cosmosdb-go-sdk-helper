@@ -189,11 +189,46 @@ func queryItemExample(endpoint, databaseName, containerName, itemID, partitionKe
 	fmt.Printf("Task: %s (%s)\n", task["id"], task["info"])
 }
 
+func queryItemsWithMetricsExample1(endpoint, databaseName, containerName string) {
+
+	type Task struct {
+		ID   string `json:"id"`
+		Info string `json:"info"`
+	}
+
+	client, err := auth.GetClientWithDefaultAzureCredential(endpoint, nil)
+	if err != nil {
+		log.Fatalf("Azure AD auth failed: %v", err)
+	}
+
+	container, err := client.NewContainer(databaseName, containerName)
+	if err != nil {
+		log.Fatalf("NewContainer failed: %v", err)
+	}
+
+	//queryResult, err := query.QueryItemsWithMetrics[Task](container, "SELECT * FROM c", azcosmos.NewPartitionKey(), nil)
+	queryResult, err := query.QueryItemsWithMetrics[Task](container, "SELECT * FROM c WHERE c.id = 3", azcosmos.NewPartitionKey(), nil)
+	if err != nil {
+		log.Fatalf("QueryItems failed: %v", err)
+	}
+	for _, task := range queryResult.Items {
+		fmt.Printf("Task: %s (%s)\n", task.ID, task.Info)
+	}
+
+	// Print metrics for each page
+	for i, metrics := range queryResult.Metrics {
+		fmt.Printf("Metrics for page %d: ", i)
+		fmt.Printf("TotalExecutionTimeInMs: %f, QueryCompileTimeInMs: %f\n", metrics.TotalExecutionTimeInMs, metrics.QueryCompileTimeInMs)
+	}
+
+	// Print total request charge
+	fmt.Printf("Total request charge: %f\n", queryResult.RequestCharge)
+}
 func main() {
-	endpoint := "https://mcpdemo.documents.azure.com:443"
+	endpoint := "https://guabhishek-cosmosdb-acc.documents.azure.com:443"
 
 	//defaultAzureCredentialExample(endpoint)
-	dbAndContainerCreationExample(endpoint)
+	//dbAndContainerCreationExample(endpoint)
 	// getAllDBandContainersExample(endpoint)
 	// errorHandlingHelperExample(endpoint)
 	// emulatorADAuthExample()
@@ -201,5 +236,6 @@ func main() {
 	//queryItemsExample1(endpoint, "tododb", "tasks")
 	//queryItemsExample2(endpoint, "tododb", "tasks")
 	//queryItemExample(endpoint, "tododb", "tasks", "3", "3")
+	queryItemsWithMetricsExample1(endpoint, "tododb", "tasks")
 
 }
