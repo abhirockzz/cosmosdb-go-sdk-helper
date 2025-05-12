@@ -1,5 +1,7 @@
 # Azure Cosmos DB Go SDK Helper
 
+[logo](image.png)
+
 A helper package providing convenience functions for working with the [Go SDK for Azure Cosmos DB NoSQL API](https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/sdk-go). This includes utilities for authentication, querying, database and container operations, error handling, etc.
 
 Packages:
@@ -34,7 +36,7 @@ import (
 
 func main() {
     // Connect using Azure AD authentication
-    client, err := auth.GetClientWithDefaultAzureCredential("your-cosmos-endpoint", nil)
+    client, err := auth.GetCosmosDBClient("your-cosmos-endpoint", false, nil)
     if err != nil {
         log.Fatalf("Authentication failed: %v", err)
     }
@@ -110,7 +112,7 @@ if err != nil {
 }
 ```
 
-## Azure Functions Cosmos DB Trigger Utilities
+## Azure Functions triggers for Cosmos DB
 
 The `functions/trigger` package provides helpers for working with Azure Functions that are triggered by Azure Cosmos DB changes. When an Azure Function is triggered by Cosmos DB, the payload containing the changed documents has a specific structure. The `trigger` package helps in parsing this payload.
 

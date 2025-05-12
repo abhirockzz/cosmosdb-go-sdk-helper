@@ -12,12 +12,26 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/data/azcosmos"
 )
 
-// GetClientWithDefaultAzureCredential creates a new Cosmos DB client using DefaultAzureCredential authentication strategy.
-// Recommended way to authenticate in production environments.
-func GetClientWithDefaultAzureCredential(endpoint string, opts *azcosmos.ClientOptions) (*azcosmos.Client, error) {
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
-	if err != nil {
-		return nil, err
+// GetCosmosDBClient creates a new Cosmos DB client.
+// If isEmulator is true, it uses a static token for the Cosmos DB Emulator.
+// If isEmulator is false, it uses DefaultAzureCredential for production environments.
+func GetCosmosDBClient(endpoint string, isEmulator bool, opts *azcosmos.ClientOptions) (*azcosmos.Client, error) {
+
+	var cred azcore.TokenCredential
+	if isEmulator {
+		// Use emulator token credential
+		token, err := getADTokenForEmulator()
+		if err != nil {
+			return nil, err
+		}
+		cred = &emulatorTokenCredential{token: token}
+	} else {
+		var err error
+		// Use DefaultAzureCredential for production
+		cred, err = azidentity.NewDefaultAzureCredential(nil)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return azcosmos.NewClient(endpoint, cred, opts)
 }
@@ -31,17 +45,6 @@ type emulatorTokenCredential struct {
 
 func (e *emulatorTokenCredential) GetToken(ctx context.Context, opts policy.TokenRequestOptions) (azcore.AccessToken, error) {
 	return e.token, nil
-}
-
-// GetEmulatorClientWithAzureADAuth creates a Cosmos DB client for the local emulator using a static Azure AD token.
-// This enables local development and testing with Cosmos DB Emulator using Azure AD-like authentication.
-func GetEmulatorClientWithAzureADAuth(endpoint string, opts *azcosmos.ClientOptions) (*azcosmos.Client, error) {
-	token, err := getADTokenForEmulator()
-	if err != nil {
-		return nil, err
-	}
-	cred := &emulatorTokenCredential{token: token}
-	return azcosmos.NewClient(endpoint, cred, opts)
 }
 
 // taken from https://github.com/Azure/azure-sdk-for-go/blob/main/sdk/data/azcosmos/emulator_tests.go
@@ -84,4 +87,26 @@ func getADTokenForEmulator() (azcore.AccessToken, error) {
 		Token:     token,
 		ExpiresOn: time.Unix(expiration, 0),
 	}, nil
+}
+
+// ====
+
+// (Deprecated) GetEmulatorClientWithAzureADAuth creates a Cosmos DB client for the local emulator using a static Azure AD token.
+// This enables local development and testing with Cosmos DB Emulator using Azure AD-like authentication.
+func GetEmulatorClientWithAzureADAuth(endpoint string, opts *azcosmos.ClientOptions) (*azcosmos.Client, error) {
+	token, err := getADTokenForEmulator()
+	if err != nil {
+		return nil, err
+	}
+	cred := &emulatorTokenCredential{token: token}
+	return azcosmos.NewClient(endpoint, cred, opts)
+}
+
+// (Deprecated) GetClientWithDefaultAzureCredential creates a new Cosmos DB client using DefaultAzureCredential authentication strategy.
+func GetClientWithDefaultAzureCredential(endpoint string, opts *azcosmos.ClientOptions) (*azcosmos.Client, error) {
+	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		return nil, err
+	}
+	return azcosmos.NewClient(endpoint, cred, opts)
 }

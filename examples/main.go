@@ -13,7 +13,7 @@ import (
 )
 
 func defaultAzureCredentialExample(endpoint string) {
-	client, err := auth.GetClientWithDefaultAzureCredential(endpoint, nil)
+	client, err := auth.GetCosmosDBClient(endpoint, false, nil)
 	if err != nil {
 		log.Fatalf("Azure AD auth failed: %v", err)
 	}
@@ -23,7 +23,7 @@ func defaultAzureCredentialExample(endpoint string) {
 }
 
 func dbAndContainerCreationExample(endpoint string) {
-	client, err := auth.GetClientWithDefaultAzureCredential(endpoint, nil)
+	client, err := auth.GetCosmosDBClient(endpoint, false, nil)
 	if err != nil {
 		log.Fatalf("Azure AD auth failed: %v", err)
 	}
@@ -53,7 +53,7 @@ func dbAndContainerCreationExample(endpoint string) {
 
 func getAllDBandContainersExample(endpoint string) {
 
-	client, err := auth.GetClientWithDefaultAzureCredential(endpoint, nil)
+	client, err := auth.GetCosmosDBClient(endpoint, false, nil)
 	if err != nil {
 		log.Fatalf("Azure AD auth failed: %v", err)
 	}
@@ -84,7 +84,7 @@ func getAllDBandContainersExample(endpoint string) {
 }
 
 func errorHandlingHelperExample(endpoint string) {
-	client, err := auth.GetClientWithDefaultAzureCredential(endpoint, nil)
+	client, err := auth.GetCosmosDBClient(endpoint, false, nil)
 	if err != nil {
 		log.Fatalf("Azure AD auth failed: %v", err)
 	}
@@ -108,7 +108,7 @@ func emulatorADAuthExample() {
 
 	// Authenticate with Emulator using Azure AD token
 
-	emuClient, err := auth.GetEmulatorClientWithAzureADAuth("http://localhost:8081", nil)
+	emuClient, err := auth.GetCosmosDBClient("http://localhost:8081", true, nil)
 	if err != nil {
 		log.Fatalf("Emulator auth failed: %v", err)
 	}
@@ -130,7 +130,7 @@ func queryItemsExample1(endpoint, sqlQuery, databaseName, containerName string) 
 		Info string `json:"info"`
 	}
 
-	client, err := auth.GetClientWithDefaultAzureCredential(endpoint, nil)
+	client, err := auth.GetCosmosDBClient(endpoint, false, nil)
 	if err != nil {
 		log.Fatalf("Azure AD auth failed: %v", err)
 	}
@@ -139,6 +139,17 @@ func queryItemsExample1(endpoint, sqlQuery, databaseName, containerName string) 
 	if err != nil {
 		log.Fatalf("NewContainer failed: %v", err)
 	}
+
+	task := Task{
+		ID:   "45",
+		Info: "Sample task",
+	}
+
+	insertedTask, err := common.InsertItemWithResponse(container, task, azcosmos.NewPartitionKeyString(task.ID), nil)
+	if err != nil {
+		log.Fatalf("InsertItem failed: %v", err)
+	}
+	fmt.Printf("Inserted task: %s (%s)\n", insertedTask.ID, insertedTask.Info)
 
 	tasks, err := query.QueryItems[Task](container, sqlQuery, azcosmos.NewPartitionKey(), nil)
 	if err != nil {
@@ -151,7 +162,7 @@ func queryItemsExample1(endpoint, sqlQuery, databaseName, containerName string) 
 
 func queryItemsExample2(endpoint, databaseName, containerName string) {
 
-	client, err := auth.GetClientWithDefaultAzureCredential(endpoint, nil)
+	client, err := auth.GetCosmosDBClient(endpoint, false, nil)
 	if err != nil {
 		log.Fatalf("Azure AD auth failed: %v", err)
 	}
@@ -172,7 +183,7 @@ func queryItemsExample2(endpoint, databaseName, containerName string) {
 
 func queryItemExample(endpoint, databaseName, containerName, itemID, partitionKey string) {
 
-	client, err := auth.GetClientWithDefaultAzureCredential(endpoint, nil)
+	client, err := auth.GetCosmosDBClient(endpoint, false, nil)
 	if err != nil {
 		log.Fatalf("Azure AD auth failed: %v", err)
 	}
@@ -196,7 +207,7 @@ func queryItemsWithMetricsExample1(endpoint, databaseName, containerName string)
 		Info string `json:"info"`
 	}
 
-	client, err := auth.GetClientWithDefaultAzureCredential(endpoint, nil)
+	client, err := auth.GetCosmosDBClient(endpoint, false, nil)
 	if err != nil {
 		log.Fatalf("Azure AD auth failed: %v", err)
 	}
@@ -207,7 +218,7 @@ func queryItemsWithMetricsExample1(endpoint, databaseName, containerName string)
 	}
 
 	//queryResult, err := query.QueryItemsWithMetrics[Task](container, "SELECT * FROM c", azcosmos.NewPartitionKey(), nil)
-	queryResult, err := query.QueryItemsWithMetrics[Task](container, "SELECT * FROM c WHERE c.id = 3", azcosmos.NewPartitionKey(), nil)
+	queryResult, err := query.QueryItemsWithMetrics[Task](container, "SELECT * FROM c WHERE c.id = 1", azcosmos.NewPartitionKey(), nil)
 	if err != nil {
 		log.Fatalf("QueryItems failed: %v", err)
 	}
@@ -224,6 +235,36 @@ func queryItemsWithMetricsExample1(endpoint, databaseName, containerName string)
 	// Print total request charge
 	fmt.Printf("Total request charge: %f\n", queryResult.RequestCharge)
 }
+
+func insertItemExample(endpoint, databaseName, containerName string) {
+
+	type Task struct {
+		ID   string `json:"id"`
+		Info string `json:"info"`
+	}
+
+	client, err := auth.GetCosmosDBClient(endpoint, false, nil)
+	if err != nil {
+		log.Fatalf("Azure AD auth failed: %v", err)
+	}
+
+	container, err := client.NewContainer(databaseName, containerName)
+	if err != nil {
+		log.Fatalf("NewContainer failed: %v", err)
+	}
+
+	task := Task{
+		ID:   "44",
+		Info: "Sample task",
+	}
+
+	insertedTask, err := common.InsertItemWithResponse(container, task, azcosmos.NewPartitionKeyString(task.ID), nil)
+	if err != nil {
+		log.Fatalf("InsertItem failed: %v", err)
+	}
+	fmt.Printf("Inserted task: %s (%s)\n", insertedTask.ID, insertedTask.Info)
+}
+
 func main() {
 	endpoint := "https://ACCOUNT_NAME.documents.azure.com:443"
 
@@ -233,10 +274,10 @@ func main() {
 	// errorHandlingHelperExample(endpoint)
 	// emulatorADAuthExample()
 
-	queryItemsExample1(endpoint, "select * from c", "tododb", "tasks")
-	//queryItemsExample1(endpoint, "SELECT * FROM c where c.category = 'Accessory'", "CopilotSampleDB", "SampleContainer")
+	//insertItemExample(endpoint, "tododb", "tasks")
+	//queryItemsExample1(endpoint, "select * from c", "tododb", "tasks")
 
 	//queryItemsExample2(endpoint, "tododb", "tasks")
 	//queryItemExample(endpoint, "tododb", "tasks", "3", "3")
-	//queryItemsWithMetricsExample1(endpoint, "tododb", "tasks")
+	queryItemsWithMetricsExample1(endpoint, "tododb", "tasks")
 }
