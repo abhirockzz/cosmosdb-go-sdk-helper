@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"encoding/base64"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -91,7 +90,7 @@ func GetIndexMetrics(response azcosmos.QueryItemsResponse) (string, error) {
 	decoded, err := base64.StdEncoding.DecodeString(*response.IndexMetrics)
 
 	if err != nil {
-		fmt.Println("Failed to decode index metrics:", err)
+		//fmt.Println("Failed to decode index metrics:", err)
 		return "", err
 	}
 

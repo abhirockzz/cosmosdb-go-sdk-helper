@@ -123,7 +123,7 @@ func emulatorADAuthExample() {
 	fmt.Println("Database ready:", db.ID())
 }
 
-func queryItemsExample1(endpoint, databaseName, containerName string) {
+func queryItemsExample1(endpoint, sqlQuery, databaseName, containerName string) {
 
 	type Task struct {
 		ID   string `json:"id"`
@@ -140,7 +140,7 @@ func queryItemsExample1(endpoint, databaseName, containerName string) {
 		log.Fatalf("NewContainer failed: %v", err)
 	}
 
-	tasks, err := query.QueryItems[Task](container, "SELECT * FROM c", azcosmos.NewPartitionKey(), nil)
+	tasks, err := query.QueryItems[Task](container, sqlQuery, azcosmos.NewPartitionKey(), nil)
 	if err != nil {
 		log.Fatalf("QueryItems failed: %v", err)
 	}
@@ -225,7 +225,7 @@ func queryItemsWithMetricsExample1(endpoint, databaseName, containerName string)
 	fmt.Printf("Total request charge: %f\n", queryResult.RequestCharge)
 }
 func main() {
-	endpoint := "https://guabhishek-cosmosdb-acc.documents.azure.com:443"
+	endpoint := "https://ACCOUNT_NAME.documents.azure.com:443"
 
 	//defaultAzureCredentialExample(endpoint)
 	//dbAndContainerCreationExample(endpoint)
@@ -233,9 +233,10 @@ func main() {
 	// errorHandlingHelperExample(endpoint)
 	// emulatorADAuthExample()
 
-	//queryItemsExample1(endpoint, "tododb", "tasks")
+	queryItemsExample1(endpoint, "select * from c", "tododb", "tasks")
+	//queryItemsExample1(endpoint, "SELECT * FROM c where c.category = 'Accessory'", "CopilotSampleDB", "SampleContainer")
+
 	//queryItemsExample2(endpoint, "tododb", "tasks")
 	//queryItemExample(endpoint, "tododb", "tasks", "3", "3")
-	queryItemsWithMetricsExample1(endpoint, "tododb", "tasks")
-
+	//queryItemsWithMetricsExample1(endpoint, "tododb", "tasks")
 }

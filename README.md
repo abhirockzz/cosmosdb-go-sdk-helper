@@ -1,13 +1,14 @@
 # Azure Cosmos DB Go SDK Helper
 
-A simple helper package providing convenience functions for working with the [Go SDK for Azure Cosmos DB NoSQL API](https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/sdk-go). This includes utilities for authentication, querying, database and container operations, error handling, etc.
+A helper package providing convenience functions for working with the [Go SDK for Azure Cosmos DB NoSQL API](https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/sdk-go). This includes utilities for authentication, querying, database and container operations, error handling, etc.
 
 Packages:
 
 - [auth](auth): Authentication utilities for Azure Cosmos DB
-- [common](common): Common utilities for database and container operations
-- [query](query): Query utilities to retrieve data using generic types
-- [cosmosdb_errors](cosmosdb_errors): Error handling utilities for Cosmos DB operations
+- [common](common): Common database and container operations
+- [query](query): Query related utilities, including retrieving data using generic types
+- [functions/trigger](functions/trigger): Handle Azure Functions Cosmos DB trigger payloads
+- [cosmosdb_errors](cosmosdb_errors): Error handling for Cosmos DB operations
 
 ## Installation
 
@@ -16,6 +17,8 @@ go get github.com/abhirockzz/cosmosdb-go-sdk-helper
 ```
 
 ## Quick Start
+
+> Refer to [this folder](examples) for examples.
 
 ```go
 package main
@@ -51,24 +54,21 @@ func main() {
     fmt.Println("Database and container ready!")
 
     type Task struct {
-		ID   string `json:"id"`
-		Info string `json:"info"`
-	}
+        ID   string `json:"id"`
+        Info string `json:"info"`
+    }
 
     tasks, err := query.QueryItems[Task](container, "SELECT * FROM c", azcosmos.NewPartitionKey(), nil)
-	if err != nil {
-		log.Fatalf("QueryItems failed: %v", err)
-	}
-	for _, task := range tasks {
-		fmt.Printf("Task: %s (%s)\n", task.ID, task.Info)
-	}
-
+    if err != nil {
+    log.Fatalf("QueryItems failed: %v", err)
+    }
+    for _, task := range tasks {
+        fmt.Printf("Task: %s (%s)\n", task.ID, task.Info)
+    }
 }
 ```
 
-> Also, refer to [examples](examples).
-
-## Authentication Options
+## Authentication
 
 ### Azure AD Authentication
 
@@ -84,19 +84,14 @@ client, err := auth.GetClientWithDefaultAzureCredential("https://your-account.do
 client, err := auth.GetEmulatorClientWithAzureADAuth("https://localhost:8081", nil)
 ```
 
-## Available Helper Functions
-
-### Database Operations
+## Database and Container Operations
 
 - `CreateDatabaseIfNotExists`: Creates a database only if it doesn't already exist
 - `GetAllDatabases`: Retrieves a list of all databases in your Cosmos account
-
-### Container Operations
-
 - `CreateContainerIfNotExists`: Creates a container only if it doesn't already exist
 - `GetAllContainers`: Retrieves a list of all containers in a database
 
-## Query operations (using Generics)
+## Query operations
 
 - `QueryItems`: Executes a SQL query against a container and returns the results
 - `QueryItem`: Retrieves a single item from a container using its ID and partition key
@@ -114,3 +109,10 @@ if err != nil {
     // Handle other errors
 }
 ```
+
+## Azure Functions Cosmos DB Trigger Utilities
+
+The `functions/trigger` package provides helpers for working with Azure Functions that are triggered by Azure Cosmos DB changes. When an Azure Function is triggered by Cosmos DB, the payload containing the changed documents has a specific structure. The `trigger` package helps in parsing this payload.
+
+- `ParseToCosmosDBDataMap`: Unmarshals the Azure Functions Cosmos DB trigger payload and extracts the documents into a `[]map[string]any`. This is useful when you want to work with the documents as generic maps.
+- `ParseToRawString`: Partially unmarshals the trigger payload to extract the `documents` field as a raw JSON string. This can be useful if you need to apply custom unmarshalling logic or pass the raw JSON string to another process.
