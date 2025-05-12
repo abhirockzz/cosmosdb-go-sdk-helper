@@ -1,6 +1,6 @@
 # Azure Cosmos DB Go SDK Helper
 
-[logo](image.png)
+![logo](image.png)
 
 A helper package providing convenience functions for working with the [Go SDK for Azure Cosmos DB NoSQL API](https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/sdk-go). This includes utilities for authentication, querying, database and container operations, error handling, etc.
 
