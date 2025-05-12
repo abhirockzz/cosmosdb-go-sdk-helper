@@ -34,36 +34,29 @@ import (
     "github.com/abhirockzz/cosmosdb-go-sdk-helper/query"
 )
 
+// error handling omitted for brevity
 func main() {
-    // Connect using Azure AD authentication
+    // Auth using Microsoft Entra ID
     client, err := auth.GetCosmosDBClient("your-cosmos-endpoint", false, nil)
-    if err != nil {
-        log.Fatalf("Authentication failed: %v", err)
-    }
 
     // Create database if not exists
     db, err := common.CreateDatabaseIfNotExists(client, "mydb")
-    if err != nil {
-        log.Fatalf("Database creation failed: %v", err)
-    }
-    
+
     // Create container if not exists
     container, err := common.CreateContainerIfNotExists(db, "mycontainer")
-    if err != nil {
-        log.Fatalf("Container creation failed: %v", err)
-    }
     
-    fmt.Println("Database and container ready!")
-
     type Task struct {
         ID   string `json:"id"`
         Info string `json:"info"`
     }
 
+    insertedTask, err := common.InsertItemWithResponse(container, Task{
+        ID:   "45",
+        Info: "Sample task",
+    }, azcosmos.NewPartitionKeyString("45"), nil)
+
     tasks, err := query.QueryItems[Task](container, "SELECT * FROM c", azcosmos.NewPartitionKey(), nil)
-    if err != nil {
-    log.Fatalf("QueryItems failed: %v", err)
-    }
+
     for _, task := range tasks {
         fmt.Printf("Task: %s (%s)\n", task.ID, task.Info)
     }
@@ -72,18 +65,24 @@ func main() {
 
 ## Authentication
 
-### Azure AD Authentication
+You can use a common authentication method to connect to Azure Cosmos DB service and local emulator authentication.
+
+`GetCosmosDBClient` uses `DefaultAzureCredential` for authentication to Cosmos DB service:
 
 ```go
-// Using DefaultAzureCredential (supports multiple authentication methods)
-client, err := auth.GetClientWithDefaultAzureCredential("https://your-account.documents.azure.com:443", nil)
+client, err := auth.GetCosmosDBClient("https://your-account.documents.azure.com:443", false, nil)
+if err != nil {
+    log.Fatalf("Azure AD auth failed: %v", err)
+}
 ```
 
-### Local Emulator
+For the emulator set `useEmulator` flag to `true` and pass the URL (e.g. `http://localhost:8081`):
 
 ```go
-// For local development with the Cosmos DB Emulator
-client, err := auth.GetEmulatorClientWithAzureADAuth("https://localhost:8081", nil)
+client, err := auth.GetCosmosDBClient("http://localhost:8081", true, nil)
+if err != nil {
+    log.Fatalf("Emulator auth failed: %v", err)
+}
 ```
 
 ## Database and Container Operations
@@ -98,6 +97,13 @@ client, err := auth.GetEmulatorClientWithAzureADAuth("https://localhost:8081", n
 - `QueryItems`: Executes a SQL query against a container and returns the results
 - `QueryItem`: Retrieves a single item from a container using its ID and partition key
 
+## Azure Functions triggers for Cosmos DB
+
+The `functions/trigger` package provides helpers for working with Azure Functions that are triggered by Azure Cosmos DB changes. When an Azure Function is triggered by Cosmos DB, the payload containing the changed documents has a specific structure. The `trigger` package helps in parsing this payload.
+
+- `ParseToCosmosDBDataMap`: Unmarshals the Azure Functions Cosmos DB trigger payload and extracts the documents into a `[]map[string]any`. This is useful when you want to work with the documents as generic maps.
+- `ParseToRawString`: Partially unmarshals the trigger payload to extract the `documents` field as a raw JSON string. This can be useful if you need to apply custom unmarshalling logic or pass the raw JSON string to another process.
+
 ## Error Handling
 
 Error handling for Cosmos DB operations:
@@ -111,10 +117,3 @@ if err != nil {
     // Handle other errors
 }
 ```
-
-## Azure Functions triggers for Cosmos DB
-
-The `functions/trigger` package provides helpers for working with Azure Functions that are triggered by Azure Cosmos DB changes. When an Azure Function is triggered by Cosmos DB, the payload containing the changed documents has a specific structure. The `trigger` package helps in parsing this payload.
-
-- `ParseToCosmosDBDataMap`: Unmarshals the Azure Functions Cosmos DB trigger payload and extracts the documents into a `[]map[string]any`. This is useful when you want to work with the documents as generic maps.
-- `ParseToRawString`: Partially unmarshals the trigger payload to extract the `documents` field as a raw JSON string. This can be useful if you need to apply custom unmarshalling logic or pass the raw JSON string to another process.
