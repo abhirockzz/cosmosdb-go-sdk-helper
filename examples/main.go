@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
+	"strconv"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/data/azcosmos"
 	"github.com/abhirockzz/cosmosdb-go-sdk-helper/auth"
 	"github.com/abhirockzz/cosmosdb-go-sdk-helper/common"
 	"github.com/abhirockzz/cosmosdb-go-sdk-helper/cosmosdb_errors"
-	"github.com/abhirockzz/cosmosdb-go-sdk-helper/query"
+	"github.com/abhirockzz/cosmosdb-go-sdk-helper/operations"
 )
 
 func defaultAzureCredentialExample(endpoint string) {
@@ -140,18 +142,19 @@ func queryItemsExample1(endpoint, sqlQuery, databaseName, containerName string) 
 		log.Fatalf("NewContainer failed: %v", err)
 	}
 
+	taskID := "task-" + strconv.Itoa(rand.Intn(1000))
 	task := Task{
-		ID:   "45",
+		ID:   taskID,
 		Info: "Sample task",
 	}
 
-	insertedTask, err := common.InsertItemWithResponse(container, task, azcosmos.NewPartitionKeyString(task.ID), nil)
+	insertedTask, err := operations.InsertItemWithResponse(container, task, azcosmos.NewPartitionKeyString(task.ID), nil)
 	if err != nil {
 		log.Fatalf("InsertItem failed: %v", err)
 	}
 	fmt.Printf("Inserted task: %s (%s)\n", insertedTask.ID, insertedTask.Info)
 
-	tasks, err := query.QueryItems[Task](container, sqlQuery, azcosmos.NewPartitionKey(), nil)
+	tasks, err := operations.ExecuteQuery[Task](container, sqlQuery, azcosmos.NewPartitionKey(), nil)
 	if err != nil {
 		log.Fatalf("QueryItems failed: %v", err)
 	}
@@ -172,7 +175,7 @@ func queryItemsExample2(endpoint, databaseName, containerName string) {
 		log.Fatalf("NewContainer failed: %v", err)
 	}
 
-	tasks, err := query.QueryItems[map[string]any](container, "SELECT * FROM c", azcosmos.NewPartitionKey(), nil)
+	tasks, err := operations.ExecuteQuery[map[string]any](container, "SELECT * FROM c", azcosmos.NewPartitionKey(), nil)
 	if err != nil {
 		log.Fatalf("QueryItems failed: %v", err)
 	}
@@ -193,9 +196,9 @@ func queryItemExample(endpoint, databaseName, containerName, itemID, partitionKe
 		log.Fatalf("NewContainer failed: %v", err)
 	}
 
-	task, err := query.QueryItem[map[string]any](container, itemID, azcosmos.NewPartitionKeyString(partitionKey), nil)
+	task, err := operations.GetItem[map[string]any](container, itemID, azcosmos.NewPartitionKeyString(partitionKey), nil)
 	if err != nil {
-		log.Fatalf("QueryItem failed: %v", err)
+		log.Fatalf("GetItem failed: %v", err)
 	}
 	fmt.Printf("Task: %s (%s)\n", task["id"], task["info"])
 }
@@ -218,7 +221,7 @@ func queryItemsWithMetricsExample1(endpoint, databaseName, containerName string)
 	}
 
 	//queryResult, err := query.QueryItemsWithMetrics[Task](container, "SELECT * FROM c", azcosmos.NewPartitionKey(), nil)
-	queryResult, err := query.QueryItemsWithMetrics[Task](container, "SELECT * FROM c WHERE c.id = 1", azcosmos.NewPartitionKey(), nil)
+	queryResult, err := operations.ExecuteQueryWithMetrics[Task](container, "SELECT * FROM c WHERE c.id = 1", azcosmos.NewPartitionKey(), nil)
 	if err != nil {
 		log.Fatalf("QueryItems failed: %v", err)
 	}
@@ -258,13 +261,41 @@ func insertItemExample(endpoint, databaseName, containerName string) {
 		Info: "Sample task",
 	}
 
-	insertedTask, err := common.InsertItemWithResponse(container, task, azcosmos.NewPartitionKeyString(task.ID), nil)
+	insertedTask, err := operations.InsertItemWithResponse(container, task, azcosmos.NewPartitionKeyString(task.ID), nil)
 	if err != nil {
 		log.Fatalf("InsertItem failed: %v", err)
 	}
 	fmt.Printf("Inserted task: %s (%s)\n", insertedTask.ID, insertedTask.Info)
 }
 
+func replaceItemExample(endpoint, databaseName, containerName string) {
+
+	type Task struct {
+		ID   string `json:"id"`
+		Info string `json:"info"`
+	}
+
+	client, err := auth.GetCosmosDBClient(endpoint, false, nil)
+	if err != nil {
+		log.Fatalf("Azure AD auth failed: %v", err)
+	}
+
+	container, err := client.NewContainer(databaseName, containerName)
+	if err != nil {
+		log.Fatalf("NewContainer failed: %v", err)
+	}
+
+	task := Task{
+		ID:   "42",
+		Info: "Sample task updated_2",
+	}
+
+	replacedTask, err := operations.ReplaceItemWithResponse(container, "42", azcosmos.NewPartitionKeyString(task.ID), task, nil)
+	if err != nil {
+		log.Fatalf("ReplaceItem failed: %v", err)
+	}
+	fmt.Printf("Replaced task: %s (%s)\n", replacedTask.ID, replacedTask.Info)
+}
 func main() {
 	endpoint := "https://ACCOUNT_NAME.documents.azure.com:443"
 
@@ -275,9 +306,11 @@ func main() {
 	// emulatorADAuthExample()
 
 	//insertItemExample(endpoint, "tododb", "tasks")
-	//queryItemsExample1(endpoint, "select * from c", "tododb", "tasks")
+	queryItemsExample1(endpoint, "select * from c", "tododb", "tasks")
+	//queryItemsExample1(endpoint, "select top 3 * from c", "tododb", "tasks")
 
 	//queryItemsExample2(endpoint, "tododb", "tasks")
 	//queryItemExample(endpoint, "tododb", "tasks", "3", "3")
-	queryItemsWithMetricsExample1(endpoint, "tododb", "tasks")
+	//queryItemsWithMetricsExample1(endpoint, "tododb", "tasks")
+	//replaceItemExample(endpoint, "tododb", "tasks")
 }

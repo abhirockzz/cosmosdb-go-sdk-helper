@@ -2,7 +2,6 @@ package common
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -97,28 +96,4 @@ func GetAllContainers(client *azcosmos.DatabaseClient) ([]azcosmos.ContainerProp
 		containers = append(containers, page.Containers...)
 	}
 	return containers, nil
-}
-
-// InsertItemWithResponse inserts an item into the specified container and returns the inserted item.
-func InsertItemWithResponse[T any](container *azcosmos.ContainerClient, item T, partitionKey azcosmos.PartitionKey, opts *azcosmos.ItemOptions) (T, error) {
-	if opts == nil {
-		opts = &azcosmos.ItemOptions{}
-	}
-	opts.EnableContentResponseOnWrite = true
-
-	itemBytes, err := json.Marshal(item)
-	if err != nil {
-		return item, err
-	}
-
-	response, err := container.CreateItem(context.Background(), partitionKey, itemBytes, opts)
-	if err != nil {
-		return item, err
-	}
-
-	if err := json.Unmarshal(response.Value, &item); err != nil {
-		return item, err
-	}
-
-	return item, nil
 }
